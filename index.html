@@ -73,6 +73,11 @@ require([
     //replace the url below with the location of a proxy on your machine. See the 'Using the proxy page' help topic
     //for details on setting up a proxy page.
     esri.config.defaults.io.proxyUrl = "/arcgisserver/apis/javascript/proxy/proxy.ashx";
+  
+    on(dom.byId("addButton"), "click", function(){
+      dom.byId("info").innerHTML = "Click On Map";
+      addFeature();
+    });
 
     var popup = new PopupMobile(null, domConstruct.create("div"));
     map = new Map('map', {
@@ -83,10 +88,10 @@ require([
     });
 
     var template = new InfoTemplate();
-    template.setTitle("<b>Request ${objectid}</b>");
-    template.setContent("<b>Date:</b> ${requestdate:DateFormat}<br/><b>Phone:</b>${phone:formatNumber}<br/><b>Name:</b>${name}");
+    template.setTitle("<b>Crime ${TypeOfCrime}</b>");
+    template.setContent("<b>Date:</b> ${Date:DateFormat}<br/><b>Comment:</b>${Comment}<br/><b>Name:</b>${NameLocation}");
     //add the citizens request layer to the map as a feature layer
-    citizenRequestLayer = new FeatureLayer("http://sampleserver5.arcgisonline.com/ArcGIS/rest/services/LocalGovernment/CitizenRequests/FeatureServer/0", {
+    citizenRequestLayer = new FeatureLayer("http://services2.arcgis.com/3BrRtsaqBVTmMCtc/arcgis/rest/services/SafetyNet/FeatureServer/0", {
       mode        :esri.layers.FeatureLayer.MODE_ONDEMAND,
       infoTemplate:template,
       outFields   :['*']
@@ -120,16 +125,6 @@ require([
     dojo.connect(Geocoder, 'onSelect', function(result){
         var spotlight = dojo.connect(map, 'onExtentChange', function(){
             map.centerAndZoom(pt, 17);
-            var geom = esri.geometry.toScreenGeometry(map.extent, map.width, map.height, result.extent);
-            var width = geom.xmax - geom.xmin;
-            var height = geom.ymin - geom.ymax;
-
-            var max = height;
-            if(width > height){
-                max = width;
-            }
-
-            var margin = '-' + Math.floor(max/2) + 'px 0 0 -' + Math.floor(max/2) + 'px';
 
             var pt = result.feature.geometry;
             var sms = new esri.symbol.SimpleMarkerSymbol().setStyle(
@@ -139,11 +134,6 @@ require([
 
             map.graphics.add(graphic);
 
-            dojo.query('.spotlight').addClass('spotlight-active').style({
-                width: max + 'px',
-                height: max + 'px',
-                margin: margin
-            });
             dojo.disconnect(spotlight);
         });
     });
@@ -170,31 +160,26 @@ require([
     var layerInfo = [{
       'featureLayer'    :citizenRequestLayer,
       'showAttachments' :false,
-      'showDeleteButton':false,
+      'showDeleteButton':true,
       'isEditable'      :true,
       'fieldInfos'      :[
         {
-          'fieldName' :'requesttype',
+          'fieldName' :'TypeOfCrime',
           'label'     :'Type',
           'isEditable':true
         },
         {
-          'fieldName' :'name',
+          'fieldName' :'NameLocation',
           'label'     :'Name',
           'isEditable':true
         },
         {
-          'fieldName' :'phone',
-          'label'     :'Phone',
+          'fieldName' :'Rating',
+          'label'     :'Rating',
           'isEditable':true
         },
         {
-          'fieldName' :'email',
-          'label'     :'Email',
-          'isEditable':true
-        },
-        {
-          'fieldName'        :'comment',
+          'fieldName'        :'Comment',
           'label'            :'Comments',
           'isEditable'       :true,
           'stringFieldOption':esri.dijit.AttributeInspector.STRING_FIELD_OPTION_TEXTAREA
@@ -228,12 +213,14 @@ require([
   }
 
   function addFeature(item) {
-    var itemTemplate = getType(item);
+    //var itemTemplate = getType(item);
+    //var itemTemplate = citizenRequestLayer.templates[0];
     var mapclickHandler = on(map, 'click', function (evt) {
       //only capture one click
       dojo.disconnect(mapclickHandler);
+      dom.byId("info").innerHTML ="";
       var currentDate = new Date();
-      var newAttributes = lang.mixin({}, itemTemplate.prototype.attributes);
+      var newAttributes = {} ;//lang.mixin({}, itemTemplate.prototype.attributes);
       newAttributes.requestdate = Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate(), currentDate.getUTCHours(), currentDate.getUTCMinutes(), currentDate.getUTCSeconds(), 0);
       var newGraphic = new Graphic(evt.mapPoint, null, newAttributes);
       citizenRequestLayer.applyEdits([newGraphic], null, null, function (adds) {
@@ -328,9 +315,10 @@ require([
   <!-- header -->
   <div data-theme="a" data-role="header" data-position="fixed">
     <h3>Editing</h3>
+    <div id="info"></div>
     <div id="search"></div>
-        <a id="geolocationButton" href="#" data-role="button">Location</a>
-    <a href="#featureDialog" data-role="button" class="ui-btn-right">Add</a>
+      <a id="geolocationButton" href="#" data-role="button">Location</a>
+      <a id="addButton" data-role="button" class="ui-btn-right">Add</a>
   </div>
 
   <!-- content -->
@@ -352,7 +340,7 @@ require([
       <div id="currentAddress" style="font-weight:bold;text-align:center;width:100%;"></div>
     </div>
     <div id="attributeDiv"></div>
-    <a href="#page" data-role="button">Finish</a>
+    <a href="#page" data-role="button">Add Place</a>
   </div>
 </div>
 
