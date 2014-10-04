@@ -99,14 +99,8 @@ require([
     locator = new Locator('http://sampleserver1.arcgisonline.com/ArcGIS/rest/services/Locators/ESRI_Geocode_USA/GeocodeServer');
     map.addLayers([citizenRequestLayer]);
     map.infoWindow.resize(185, 100);
-
-    on(map, 'load', function (map) {
-      $(document).ready(jQueryReady);
-      $(window).load(getLocation);
-    });
     
-
-    
+        
     Geocoder = new esri.dijit.Geocoder({
       autoComplete: true,
       arcgisGeocoder:{
@@ -118,8 +112,14 @@ require([
     // start widget
     Geocoder.startup();
     
+    function removeSpotlight(){
+      dojo.query('.spotlight').removeClass('spotlight-active');
+      map.graphics.clear();
+    }
+    
     dojo.connect(Geocoder, 'onSelect', function(result){
         var spotlight = dojo.connect(map, 'onExtentChange', function(){
+            map.centerAndZoom(pt, 17);
             var geom = esri.geometry.toScreenGeometry(map.extent, map.width, map.height, result.extent);
             var width = geom.xmax - geom.xmin;
             var height = geom.ymin - geom.ymax;
@@ -146,12 +146,20 @@ require([
             });
             dojo.disconnect(spotlight);
         });
+    });
+    dojo.connect(Geocoder, 'onClear', function(){
+     removeSpotlight();
+    });
 
-
+    on(map, 'load', function (map) {
+      $(document).ready(jQueryReady);
+      $(window).load(getLocation);
     });
     
 
-    on(dom.byId('searchLocation'), 'click', getSearchedLocation);
+
+    
+    on(dom.byId('geolocationButton'), 'click', getLocation);
   });
 
   function jQueryReady() {
@@ -307,7 +315,7 @@ require([
     var sms = new esri.symbol.SimpleMarkerSymbol().setStyle(
       esri.symbol.SimpleMarkerSymbol.STYLE_CIRCLE).setColor(
       new dojo.Color([255,0,0,0.5]));
-      var graphic = new esri.Graphic(pt,sms,null,null);
+    var graphic = new esri.Graphic(pt,sms,null,null);
 
       map.graphics.add(graphic);
   }
@@ -321,6 +329,7 @@ require([
   <div data-theme="a" data-role="header" data-position="fixed">
     <h3>Editing</h3>
     <div id="search"></div>
+        <a id="geolocationButton" href="#" data-role="button">Location</a>
     <a href="#featureDialog" data-role="button" class="ui-btn-right">Add</a>
   </div>
 
